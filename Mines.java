@@ -1,45 +1,35 @@
+import java.util.HashMap;
 
 public class Mines {
 	
-	private int[] pos, posX, posY;
+	private int[] posX, posY;
+	private HashMap<Integer, Integer> pos;
 	
 	Mines(int row, int col, int num_mines) {
 		generate_mines(row, col, num_mines);
 	}
 	
 	private void generate_mines(int row, int col, int num_mines) {
-		pos = new int[num_mines];
-		for(int i=0; i<num_mines; i++) {
-			pos[i] = (int) (Math.random()*row*col);
+		pos = new HashMap<>();
+		for(int i = 0; i < num_mines; i++) {
+			int rng;
+			do {
+				rng = (int) (Math.random()*row*col);
+			}while(pos.containsValue(rng));
+			pos.put(i, rng);
 		}
-		
-		//same place?
-		boolean err;
-		do {
-			err = false;
-			int test;
-			for (int i=1; i<num_mines; i++) {
-				test = pos[i];
-				for (int j=0; j<i; j++) {
-					if (test==pos[j]) {
-						err = true;
-						pos[i] =  (int) (Math.random()*row*col);
-					}
-				}
-			}
-		} while (err);
 		
 		posX = new int[num_mines];
 		posY = new int[num_mines];
 		for(int i=0; i<num_mines; i++) {
-			posX[i] = pos[i]/col;
-			posY[i] = pos[i]%col;
+			posX[i] = pos.get(i)/col;
+			posY[i] = pos.get(i)%col;
 		}
 	}
 	
 	final void print() {
-		for(int i=0; i<pos.length; i++) {
-			System.out.println(pos[i] + " " + posX[i] + " " + posY[i]);
+		for(int i=0; i<pos.size(); i++) {
+			System.out.println(pos.get(i) + " " + posX[i] + " " + posY[i]);
 		}
 	}
 

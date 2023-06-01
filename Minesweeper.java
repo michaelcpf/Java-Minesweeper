@@ -1,65 +1,41 @@
-import java.util.Scanner;
+import java.awt.Dimension;
+import java.awt.GridLayout;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
 
 public class Minesweeper {
 	
-	Scanner user_input = new Scanner(System.in);
-	private int row, col, num_mines, difficulty;
+	private int row, col, num_mines;
 	private final char ZERO = 48, MINE = 42, FLAG = 102, QUES = 63, BOX = 45;
-	private boolean lose;
 	
-	GameBoard back_board;
-	GameBoard front_board;
-	Mines pos_mines;
+	private GameBoard back_board, front_board;
+	private Mines pos_mines;
 	
-	Minesweeper() {
+	private GUIFrame game_frame;
+	private JPanel game_panel;
+	private JButton[][] front_button;
+	
+	private JMenuBar menu_bar;
+	private JMenu file_menu;
+	private JMenuItem new_game_item, retry_item, exit_item;
+	
+	Minesweeper(int row, int col, int num_mines) {
+		setRow(row);
+		setCol(col);
+		setNum_mines(num_mines);
 		initialise_board();
-		do {
-			front_board.print_with_index();
-			next_move();
-		} while(!lose && !check_win());
-		front_board.print_with_index();
+		gameGUI();
 	}
 	
 	private void initialise_board() {
-		lose = false;
-		while(true) {
-			System.out.print("Enter difficult: Beginner(1), Intermediate(2), Expert(3), Custom(4): ");
-			difficulty = user_input.nextInt();
-			user_input.nextLine();
-			if(difficulty > 0 && difficulty < 5) {
-				break;
-			}
-			else {
-				System.out.println("Invalid input!");
-			}
-		}
-		
-		switch(difficulty) {
-		case 1:
-			row = 9;
-			col = 9;
-			num_mines = 10;
-			break;
-		case 2:
-			row = 16;
-			col = 16;
-			num_mines = 40;
-			break;
-		case 3:
-			row = 16;
-			col = 30;
-			num_mines = 99;
-			break;
-		case 4:
-			row = input_in_range(8, 24, "row");
-			col = input_in_range(8, 30, "col");
-			num_mines = input_in_range(10, (row-1)*(col-1), "mine");
-			break;
-		default:
-			row = 9;
-			col = 9;
-			num_mines = 10;
-		}
 		back_board = new GameBoard(row, col, ZERO);
 		front_board = new GameBoard(row, col, BOX);
 		pos_mines = new Mines(row, col, num_mines);
@@ -69,20 +45,6 @@ public class Minesweeper {
 			int mine_y = pos_mines.getPosY()[k];
 			update_count(mine_x, mine_y);
 			back_board.setBoard(mine_x, mine_y, MINE);
-		}
-	}
-	
-	private int input_in_range(int min, int max, String s) {
-		while(true) {
-			System.out.print("Please input " + s + " number(" + min + "~" + max + "): ");
-			int input = user_input.nextInt();
-			user_input.nextLine();
-			if(input >= min && input <= max) {
-				return input;
-			}
-			else {
-				System.out.println("Integer is not in range");
-			}
 		}
 	}
 	
@@ -96,86 +58,27 @@ public class Minesweeper {
 					continue;
 				}
 				else if(back_board.getBoard(mine_x+i, mine_y+j) != MINE) {
-					back_board.setBoard(mine_x+i, mine_y+j,(char) (back_board.getBoard(mine_x+i, mine_y+j)+1));
+					back_board.setBoard(mine_x+i, mine_y+j, (char) (back_board.getBoard(mine_x+i, mine_y+j)+1));
 				}
 			}
 		}
 	}
 	
-	private void next_move() {
-		int row_move = 0, col_move = 0;
-		String move;
-		do {
-			System.out.print("What to do? Explore(e), Place flag(f), Place \"?\"(q): ");
-			move = user_input.nextLine();
-			if(!move.equals("e") && !move.equals("f") && !move.equals("q")) {
-				System.out.println("Invalid input!");
-				continue;
-			}
-			row_move = input_in_range(1, row, "row") - 1;
-			col_move = input_in_range(1, col, "col") - 1;
-		} while(move_invalid(row_move, col_move, move));
-	}
-	
-	private boolean move_invalid(int row, int col, String move) {
-		char target_tile = front_board.getBoard(row, col);
-		if(target_tile >= ZERO && target_tile <= ZERO+8) {
-			System.out.println("You have discoverd this tile");
-			return true;
-		}
-		switch(move) {
-		case "e":
-			if(target_tile == BOX) {
-				open_tile(row, col);
-				return false;
-			}
-			else if(target_tile == FLAG) {
-				System.out.println("A flag has been placed here");
-				return true;
-			}
-			else if(target_tile == QUES) {
-				System.out.println("A question mark has been placed here");
-				return true;
-			}
-			break;
-		case "f":
-			if(target_tile == BOX || target_tile == QUES) {
-				front_board.setBoard(row, col, FLAG);
-				return false;
-			}
-			else if(target_tile == FLAG) {
-				front_board.setBoard(row, col, BOX);
-				return false;
-			}
-			break;
-		case "q":
-			if(target_tile == BOX || target_tile == FLAG) {
-				front_board.setBoard(row, col, QUES);
-				return false;
-			}
-			else if(target_tile == QUES) {
-				front_board.setBoard(row, col, BOX);
-				return false;
-			}
-			break;
-		}
-		System.out.println("Something went wrong");
-		return true;
-	}
-	
 	private void open_tile(int row, int col) {
 		if(back_board.getBoard(row, col) == MINE) {
 			for(int k = 0; k < num_mines; k++) {
-				front_board.setBoard(pos_mines.getPosX()[k], pos_mines.getPosY()[k], MINE);
+				update_button_text(front_button, pos_mines.getPosX()[k], pos_mines.getPosY()[k], MINE);
 			}
-			System.out.println("Boom!");
-			lose = true;
+			deactivate_button();
+			JOptionPane.showConfirmDialog(null, "Boom!", "Retry?", JOptionPane.DEFAULT_OPTION, JOptionPane.ERROR_MESSAGE);
 		}
 		else if(back_board.getBoard(row, col) == ZERO) {
 			open_zeros(row, col);
 		}
 		else {
-			front_board.setBoard(row, col, back_board.getBoard(row, col));
+			update_button_text(front_button, row, col, back_board.getBoard(row, col));
+			front_button[row][col].setEnabled(false);
+			check_win();
 		}
 	}
 	
@@ -188,12 +91,14 @@ public class Minesweeper {
 				if(col+j < 0 || col+j == this.col || (front_board.getBoard(row+i, col+j) >= ZERO && front_board.getBoard(row+i, col+j) <= ZERO+8)) {
 					continue;
 				}
-				if(front_board.getBoard(row+i, col+j) != ZERO && back_board.getBoard(row+i, col+j) == ZERO) {
-					front_board.setBoard(row+i, col+j, back_board.getBoard(row+i, col+j));
+				if(back_board.getBoard(row+i, col+j) == ZERO) {
+					update_button_text(front_button, row+i, col+j, back_board.getBoard(row+i, col+j));
+					front_button[row+i][col+j].setEnabled(false);
 					open_zeros(row+i, col+j);
 				}
 				else {
-					front_board.setBoard(row+i, col+j, back_board.getBoard(row+i, col+j));
+					update_button_text(front_button, row+i, col+j, back_board.getBoard(row+i, col+j));
+					front_button[row+i][col+j].setEnabled(false);
 				}
 			}
 		}
@@ -210,8 +115,133 @@ public class Minesweeper {
 				}
 			}
 		}
-		System.out.println("You win!");
+		deactivate_button();
+		JOptionPane.showConfirmDialog(null, "You Win!", "Congratulations!", JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE);
 		return true;
+	}
+	
+	private void gameGUI() {
+		game_panel = new JPanel();		
+		game_panel.setLayout(new GridLayout(row, col));
+		game_frame = new GUIFrame();
+		
+		menu_bar = new JMenuBar();
+		file_menu = new JMenu("File");
+		new_game_item = new JMenuItem("New Game");
+		retry_item = new JMenuItem("Retry");
+		exit_item = new JMenuItem("Exit");
+		new_game_item.addActionListener((e) -> {
+			game_frame.dispose();
+			new SetupFrame();
+		});
+		retry_item.addActionListener((e) -> {
+			game_frame.dispose();
+			new Minesweeper(row, col, num_mines);
+		});
+		exit_item.addActionListener((e) -> {
+			System.exit(0);
+		});
+		
+		front_button = new JButton[row][col];
+		for(int i = 0; i < row; i++) {
+			for(int j = 0; j < col; j++) {
+				front_button[i][j] = new JButton(" ");
+				front_button[i][j].setPreferredSize(new Dimension(30, 30));
+				front_button[i][j].setFocusable(false);
+				front_button[i][j].setBorder(BorderFactory.createEtchedBorder());
+				int tempi = i, tempj = j;
+				front_button[i][j].addMouseListener(new MouseListener() {
+					@Override
+					public void mouseClicked(MouseEvent e) {
+						// TODO Auto-generated method stub
+						
+					}
+
+					@Override
+					public void mousePressed(MouseEvent e) {
+						// TODO Auto-generated method stub
+						if(e.getButton() == 1) {
+							if(front_board.getBoard(tempi, tempj) == BOX) {
+								open_tile(tempi, tempj);
+							}
+						}
+						else if(e.getButton() == 3) {
+							switch(front_board.getBoard(tempi, tempj)) {
+							case BOX: 
+								update_button_text((JButton) e.getComponent(), tempi, tempj, FLAG);
+								break;
+							case FLAG:
+								update_button_text((JButton) e.getComponent(), tempi, tempj, QUES);
+								break;
+							case QUES:
+								update_button_text((JButton) e.getComponent(), tempi, tempj, ' ');
+								front_board.setBoard(tempi, tempj, BOX);
+								break;
+							}
+						}
+					}
+
+					@Override
+					public void mouseReleased(MouseEvent e) {
+						// TODO Auto-generated method stub
+						
+					}
+
+					@Override
+					public void mouseEntered(MouseEvent e) {
+						// TODO Auto-generated method stub
+						
+					}
+
+					@Override
+					public void mouseExited(MouseEvent e) {
+						// TODO Auto-generated method stub
+						
+					}
+				});
+				game_panel.add(front_button[i][j]);
+			}
+		}
+		
+		game_frame.setJMenuBar(menu_bar);
+		menu_bar.add(file_menu);
+		file_menu.add(new_game_item);
+		file_menu.add(retry_item);
+		file_menu.add(exit_item);
+		game_frame.add(game_panel);
+		game_frame.pack();
+	}
+	
+	private void update_button_text(JButton b, int row, int col, char c) {
+		b.setText(String.valueOf(c));
+		front_board.setBoard(row, col, c);
+	}
+	
+	private void update_button_text(JButton[][] b, int row, int col, char c) {
+		b[row][col].setText(String.valueOf(c));
+		front_board.setBoard(row, col, c);
+	}
+	
+	private void deactivate_button() {
+		for(int i = 0; i < row; i++) {
+			for(int j = 0; j < col; j++) {
+				front_button[i][j].setEnabled(false);
+				front_button[i][j].removeMouseListener(front_button[i][j].getMouseListeners()[1]);
+				front_button[i][j].removeMouseListener(front_button[i][j].getMouseListeners()[0]);
+			}
+		}
+	}
+
+	private void setRow(int row) {
+		this.row = row;
+	}
+
+	private void setCol(int col) {
+		this.col = col;
+	}
+
+	private void setNum_mines(int num_mines) {
+		this.num_mines = num_mines;
 	}
 
 }
